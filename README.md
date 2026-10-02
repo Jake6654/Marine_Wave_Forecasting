@@ -140,4 +140,25 @@
 
 기준 모델보다 좋은 성능을 보장하지 않는다.
 개선되지 않은 경우에도 실험 결과와 가능한 원인을 기록한다.
-# Marine_Wave_Forecasting
+
+## 10. 개발 환경
+
+- Python: 3.13 계열
+- 환경 및 의존성 관리: uv
+- 개발 도구: pytest
+
+### 환경 구성
+
+프로젝트 루트에서 실행한다.
+
+```bash
+uv sync --python 3.13
+```
+
+### 환경 확인
+
+```bash
+uv run --locked python --version
+uv run --locked python -m pytest --version
+uv lock --check
+```

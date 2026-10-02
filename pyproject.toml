@@ -1,0 +1,12 @@
+[project]
+name = "marine-wave-forecasting"
+version = "0.1.0"
+description = "Six-hour significant wave height forecasting from marine observations."
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest",
+]

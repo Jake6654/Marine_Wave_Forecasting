@@ -1,0 +1,18 @@
+# Recreate the local environment from the project and lock files.
+/.venv/
+
+# Keep generated Python and test caches out of version control.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Keep local credentials private while allowing a shared template.
+.env
+.env.*
+!.env.example
+
+# Ignore local notebook checkpoints and macOS metadata.
+.ipynb_checkpoints/
+.DS_Store
