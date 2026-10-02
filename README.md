@@ -162,3 +162,59 @@ uv run --locked python --version
 uv run --locked python -m pytest --version
 uv lock --check
 ```
+
+위 명령은 환경 확인용이며, 프로젝트 테스트 실행을 의미하지 않는다.
+
+### 패키지 확인
+
+```bash
+uv run --locked python -c 'import marine_forecast; print(marine_forecast.__file__)'
+```
+
+개발용 editable 설치에서는 현재 저장소의
+`src/marine_forecast/__init__.py` 경로가 출력되어야 한다.
+소스 코드는 이 경로에서 사용하며, 빌드 설정이나 의존성을 수정했다면
+`uv sync`를 다시 실행한다.
+
+### 테스트 실행
+
+```bash
+uv run --locked python -m pytest -v
+```
+
+현재 테스트는 다음 두 가지를 검증한다.
+
+- 패키지 import가 현재 저장소의 소스 파일을 가리키는지 확인한다.
+- 프로젝트 밖의 임시 디렉터리에서 별도의 Python 프로세스로 import해도
+  같은 소스를 사용하는지 확인한다.
+
+두 번째 테스트는 Python의 `-I` 옵션으로 현재 작업 디렉터리와
+`PYTHONPATH`의 영향을 제외한다. 두 테스트 모두 개발용 editable 설치를
+대상으로 하며, 배포용 wheel 설치를 검증한 것은 아니다.
+
+`pyproject.toml`과 `uv.lock`은 Git으로 관리한다.
+로컬 가상환경인 `.venv`와 테스트 캐시는 Git에 포함하지 않는다.
+
+## 11. 진행 상태
+
+- [x] A1: 문제 정의와 범위 문서 작성 및 검토
+- [x] A2: Python 환경과 의존성 관리
+- [x] A3: 패키지와 테스트 구조 구성
+- [x] A4: 환경 및 설치 연결 검증
+- [ ] B1: 공식 데이터 명세와 실제 샘플 확인
+
+### Phase A 검증 기록
+
+2026-10-02 로컬 macOS 환경에서 확인했다.
+
+- Python 3.13.5, pytest 9.1.1
+- `uv sync --python 3.13`: 프로젝트 editable 설치 성공
+- `uv lock --check`: 설정과 잠금 파일 일치 확인
+- `uv run --locked python -m pytest -v`: 2개 수집, 2개 통과, 0개 실패
+- 프로젝트 내부 및 외부 작업 디렉터리에서 소스 경로 확인
+- `.venv`가 Git에서 제외되는 것 확인
+
+현재 검증은 로컬 패키지 설치 연결에 대한 smoke/integration 테스트다.
+기상 API, 데이터 처리, 모델, 웹 서비스, 배포 환경은 아직 검증하지 않았다.
+의존성 설치 과정은 패키지 저장소에 접근할 수 있지만, 테스트 자체는
+외부 API나 Docker를 사용하지 않는다.
