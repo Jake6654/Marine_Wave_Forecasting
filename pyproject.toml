@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Six-hour significant wave height forecasting from marine observations."
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
-dependencies = []
+dependencies = [
+    "pandas>=3.0.6",
+]
 
 [dependency-groups]
 dev = [
