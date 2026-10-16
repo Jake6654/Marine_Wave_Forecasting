@@ -11,7 +11,7 @@ def test_package_imports_from_project_source() -> None:
     assert package.__file__ is not None
 
     project_root = Path(__file__).resolve().parents[1]
-    expected_path = (
+    expected_path = (.
         project_root / "src" / "marine_forecast" / "__init__.py"
     )
 
