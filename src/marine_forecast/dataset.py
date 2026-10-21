@@ -342,3 +342,168 @@ def select_complete_samples(
     complete_samples.attrs = dataset.attrs.copy()
 
     return complete_samples, report
+
+def split_by_time(
+    samples: pd.DataFrame,
+    *,
+    validation_start: str | pd.Timestamp,
+    test_start: str | pd.Timestamp,
+    test_end: str | pd.Timestamp,
+) -> tuple[dict[str, pd.DataFrame], dict[str, object]]:
+    """완전한 표본을 시간순으로 나누고 경계를 침범하는 정답을 제외한다."""
+    keys = ["station_id", "observed_at"]
+    required_columns = (
+        keys
+        + ["target_at"]
+        + list(FEATURE_COLUMNS)
+        + [TARGET_COLUMN]
+    )
+
+    missing_columns = set(required_columns).difference(samples.columns)
+
+    if missing_columns:
+        raise ValueError(
+            f"Samples are missing columns: {sorted(missing_columns)}"
+        )
+
+    if samples.empty:
+        raise ValueError("No complete samples to split.")
+
+    # 결측 표본 선택은 C5에서 완료되어 있어야 한다.
+    if samples[required_columns].isna().any().any():
+        raise ValueError(
+            "Samples contain missing values; select complete samples first."
+        )
+
+    for column in ("observed_at", "target_at"):
+        dtype = samples[column].dtype
+
+        if not isinstance(dtype, pd.DatetimeTZDtype):
+            raise TypeError(f"{column} must be timezone-aware datetime.")
+
+        if str(dtype.tz) != "UTC":
+            raise ValueError(f"{column} must use UTC.")
+
+    if samples.duplicated(keys).any():
+        raise ValueError("Samples contain duplicate observation keys.")
+
+    # 정답 연결이 프로젝트의 예측 간격과 일치하는지 확인한다
+    actual_horizon = samples["target_at"] - samples["observed_at"]
+    if not actual_horizon.eq(
+        pd.Timedelta(hours=HORIZON_HOURS)
+    ).all():
+        raise ValueError(
+            f"Every target must be exactly {HORIZON_HOURS} hours ahead."
+        )
+
+    boundaries: dict[str, pd.Timestamp] = {}
+
+    for name, value in (
+        ("validation_start", validation_start),
+        ("test_start", test_start),
+        ("test_end", test_end),
+    ):
+        try:
+            timestamp = pd.Timestamp(value)
+        except (TypeError, ValueError) as error:
+            raise ValueError(
+                f"Invalid {name}: {value!r}"
+            ) from error
+
+        # 시간대 없는 경계에 로컬 시간대나 UTC를 임의로 부여하지 않는다.
+        if pd.isna(timestamp) or timestamp.tzinfo is None:
+            raise ValueError(
+                f"{name} must include an explicit timezone."
+            )
+
+        boundaries[name] = timestamp.tz_convert("UTC")
+
+    validation_boundary = boundaries["validation_start"]
+    test_boundary = boundaries["test_start"]
+    end_boundary = boundaries["test_end"]
+
+    if not validation_boundary < test_boundary < end_boundary:
+        raise ValueError(
+            "Expected validation_start < test_start < test_end."
+        )
+
+    # 원본 순서는 변경하지 않고 반환할 표본만 시간순으로 정리한다.
+    ordered = (
+        samples.sort_values(["observed_at", "station_id"])
+        .reset_index(drop=True)
+    )
+
+    observed_at = ordered["observed_at"]
+    target_at = ordered["target_at"]
+
+    windows = {
+        "train": (
+            observed_at < validation_boundary,
+            validation_boundary,
+        ),
+        "validation": (
+            (observed_at >= validation_boundary)
+            & (observed_at < test_boundary),
+            test_boundary,
+        ),
+        "test": (
+            (observed_at >= test_boundary)
+            & (observed_at < end_boundary),
+            end_boundary,
+        ),
+    }
+
+    splits: dict[str, pd.DataFrame] = {}
+    purged_rows: dict[str, int] = {}
+
+    for name, (window_mask, period_end) in windows.items():
+        # 기준시각뿐 아니라 정답 시각도 같은 구간 안에 있어야 한다.
+        usable_mask = window_mask & (target_at < period_end)
+
+        part = (
+            ordered.loc[usable_mask]
+            .copy()
+            .reset_index(drop=True)
+        )
+
+        if part.empty:
+            raise ValueError(
+                f"{name} split is empty after boundary filtering; "
+                "check the data range and split boundaries."
+            )
+
+        # 시간대 가정과 예측 간격을 유지하고 분할 정보를 추가한다.
+        part.attrs = samples.attrs.copy()
+        part.attrs["split"] = name
+        part.attrs["split_end"] = period_end.isoformat()
+
+        splits[name] = part
+        purged_rows[name] = int(
+            (window_mask & (target_at >= period_end)).sum()
+        )
+
+    split_rows = {
+        name: len(frame)
+        for name, frame in splits.items()
+    }
+    used_rows = sum(split_rows.values())
+
+    report: dict[str, object] = {
+        "input_rows": len(samples),
+        "used_rows": used_rows,
+        "excluded_rows": len(samples) - used_rows,
+        "split_rows": split_rows,
+        "purged_boundary_rows": purged_rows,
+        "outside_period_rows": int(
+            (observed_at >= end_boundary).sum()
+        ),
+        "boundaries": {
+            name: timestamp.isoformat()
+            for name, timestamp in boundaries.items()
+        },
+        "source_timezone_status": samples.attrs.get(
+            "source_timezone_status"
+        ),
+    }
+
+    return splits, report
