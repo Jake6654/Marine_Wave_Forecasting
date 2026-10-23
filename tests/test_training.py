@@ -236,16 +236,17 @@ def test_real_validation_pipeline_integration(
     monkeypatch.setattr(experiment, "train_ridge", capture_train)
     monkeypatch.setattr(experiment, "evaluate_regression", capture_evaluate)
 
-    with pytest.warns(UserWarning, match="Source timezone is not confirmed"):
-        returncode = experiment.main()
+    returncode = experiment.main()
 
     assert returncode == 0
     train = captured["splits"]["train"]
     validation = captured["splits"]["validation"]
     assert (len(train), len(validation)) == (3891, 1130)
     assert_frame_equal(captured["training_samples"], train)
-    assert train["target_at"].lt(pd.Timestamp("2025-10-01T00:00:00Z")).all()
-    assert validation.attrs["source_timezone_status"] == "caller_supplied_unverified"
+    assert train["target_at"].lt(pd.Timestamp("2025-10-01T00:00:00+09:00")).all()
+    assert validation["observed_at"].ge(pd.Timestamp("2025-10-01T00:00:00+09:00")).all()
+    assert validation["target_at"].lt(pd.Timestamp("2025-12-01T00:00:00+09:00")).all()
+    assert validation.attrs["source_timezone_status"] == "confirmed"
 
     model = captured["model"]
     scaler = model.named_steps["scaler"]

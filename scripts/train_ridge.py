@@ -26,7 +26,7 @@ DATA_PATH = (
     PROJECT_ROOT
     / "data"
     / "processed"
-    / "buoy_22101_2025_utc_assumed.csv"
+    / "buoy_22101_2025_kst_to_utc.csv"
 )
 
 
@@ -40,9 +40,10 @@ def main() -> int:
 
   splits, _ = split_by_time(
         complete_samples,
-        validation_start="2025-10-01T00:00:00Z",
-        test_start="2025-12-01T00:00:00Z",
-        test_end="2026-01-01T00:00:00Z",
+        # 한국 달력 기준 경계를 지정하고, 분할 함수에서 UTC로 변환한다.
+        validation_start="2025-10-01T00:00:00+09:00",
+        test_start="2025-12-01T00:00:00+09:00",
+        test_end="2026-01-01T00:00:00+09:00",
     )
 
   train = splits["train"]

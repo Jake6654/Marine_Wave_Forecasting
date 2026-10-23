@@ -86,17 +86,16 @@ def test_real_three_model_validation_integration(
     )
     monkeypatch.setattr(experiment, "evaluate_regression", capture_evaluate)
 
-    with pytest.warns(UserWarning, match="Source timezone is not confirmed"):
-        returncode = experiment.main()
+    returncode = experiment.main()
 
     assert returncode == 0
     train = captured["splits"]["train"]
     validation = captured["splits"]["validation"]
     assert (len(train), len(validation)) == (3891, 1130)
-    assert train["target_at"].lt(pd.Timestamp("2025-10-01T00:00:00Z")).all()
-    assert validation["observed_at"].ge(pd.Timestamp("2025-10-01T00:00:00Z")).all()
-    assert validation["target_at"].lt(pd.Timestamp("2025-12-01T00:00:00Z")).all()
-    assert validation.attrs["source_timezone_status"] == "caller_supplied_unverified"
+    assert train["target_at"].lt(pd.Timestamp("2025-10-01T00:00:00+09:00")).all()
+    assert validation["observed_at"].ge(pd.Timestamp("2025-10-01T00:00:00+09:00")).all()
+    assert validation["target_at"].lt(pd.Timestamp("2025-12-01T00:00:00+09:00")).all()
+    assert validation.attrs["source_timezone_status"] == "confirmed"
 
     X_train = train.loc[:, list(experiment.FEATURE_COLUMNS)].astype("float64")
     X_validation = validation.loc[:, list(experiment.FEATURE_COLUMNS)].astype("float64")
@@ -159,7 +158,8 @@ def test_comparison_cli_integration(experiment: ModuleType, tmp_path: Path) -> N
     assert completed.returncode == 0, completed.stderr
     assert "Training samples: 3891" in completed.stdout
     assert "Validation samples: 1130" in completed.stdout
-    assert "Source timezone is not confirmed" in completed.stderr
+    assert "Source timezone is not confirmed" not in completed.stderr
+    assert "Source timezone status: confirmed" in completed.stdout
     assert all(
         f"{name}: MAE=" in completed.stdout
         for name in ("Persistence", "Ridge", "RandomForest")
