@@ -6,6 +6,10 @@
 학습 스크립트는 `buoy_22101_2025_kst_to_utc.csv`를 사용한다.
 데이터 재생성 방법과 확인 근거는 [KST 재처리 기록](docs/kst_reprocessing.md)을 참고한다.
 
+실시간 관측의 1회·반복 수집, SQLite 저장 및 Docker Compose 운영 방법은
+[수집기 운영 안내](docs/collector_operations.md)를 참고한다.
+수집 구현과 모델의 실시간 추론·QC 검증 완료는 서로 다른 상태다.
+
 ## 1. 프로젝트 목적
 
 데이터 수집, 탐색적 분석, 머신러닝 학습, 성능 검증, 웹 서비스 배포를

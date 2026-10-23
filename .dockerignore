@@ -1,0 +1,13 @@
+# 필요한 소스만 빌드에 전달한다. .env와 data는 제외 상태를 유지한다.
+**
+!Dockerfile.collector
+!.dockerignore
+!pyproject.toml
+!uv.lock
+!README.md
+!src/
+!src/**
+!scripts/
+!scripts/**
+**/__pycache__/
+**/*.pyc

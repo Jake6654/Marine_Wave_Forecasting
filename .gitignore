@@ -16,3 +16,6 @@ htmlcov/
 # Ignore local notebook checkpoints and macOS metadata.
 .ipynb_checkpoints/
 .DS_Store
+
+# Keep live observations, process locks, and collector status out of Git.
+/data/runtime/

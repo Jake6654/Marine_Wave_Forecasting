@@ -1,0 +1,51 @@
+services:
+  collector:
+    build:
+      context: .
+      dockerfile: Dockerfile.collector
+    init: true
+    restart: unless-stopped
+    environment:
+      KMA_API_KEY: ${KMA_API_KEY:?Configure KMA_API_KEY in .env}
+    command:
+      - python
+      - scripts/run_buoy_collector.py
+      - --db
+      - /var/lib/marine-forecast/buoy_observations.sqlite3
+      - --interval-seconds
+      - "600"
+      - --child-timeout-seconds
+      - "60"
+      - --max-consecutive-failures
+      - "3"
+    volumes:
+      - buoy-data:/var/lib/marine-forecast
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 20s
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - scripts/check_buoy_collector.py
+        - --status-file
+        - /var/lib/marine-forecast/buoy_observations.collector.json
+        - --max-age-seconds
+        - "2100"
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  buoy-data:
