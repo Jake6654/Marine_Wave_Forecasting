@@ -37,6 +37,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         required=True,
         help="Timezone used to interpret source timestamps.",
     )
+    parser.add_argument(
+        "--source-timezone-evidence",
+        help="Caller-reported confirmation evidence; omitted means unverified.",
+    )
     return parser.parse_args(argv)
 
 
@@ -53,8 +57,15 @@ def prepare_data(
     *,
     encoding: str,
     source_timezone: str,
+    source_timezone_evidence: str | None = None,
 ) -> dict[str, object]:
     """원본 검증 후 새 CSV와 처리 기록을 저장한다"""
+    # 시간대 이름만 지정한 실행과 확인 근거를 전달한 실행을 구분한다.
+    if source_timezone_evidence is not None:
+        if not isinstance(source_timezone_evidence, str) or not source_timezone_evidence.strip():
+            raise ValueError("Source timezone evidence must be a non-empty string.")
+        source_timezone_evidence = source_timezone_evidence.strip()
+
     input_path = input_path.resolve() # 절대경로로 만듬
     output_path = output_path.resolve()
     # return a new file path with suffix changed
@@ -97,7 +108,10 @@ def prepare_data(
         "source_sha256": source_hash,
         "source_encoding": encoding,
         "source_timezone": source_timezone,
-        "source_timezone_status": "caller_supplied_unverified",
+        "source_timezone_status": (
+            "confirmed" if source_timezone_evidence is not None
+            else "caller_supplied_unverified"
+        ),
         "output_timezone": "UTC",
         "output_path": str(output_path),
         "metadata_path": str(metadata_path),
@@ -115,6 +129,11 @@ def prepare_data(
         "last_observed_at": frame["observed_at"].max().isoformat(),
         "unmapped_columns": frame.attrs["unmapped_columns"],
     }
+
+    # 확인은 호출자가 보고한 것이며, 프로그램이 공식 답변을 조회한 것은 아니다.
+    if source_timezone_evidence is not None:
+        metadata["source_timezone_evidence"] = source_timezone_evidence
+        metadata["source_timezone_confirmation_method"] = "caller_reported"
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     created_paths: list[Path] = []
@@ -161,22 +180,30 @@ def main() -> int:
     """실행 결과를 출력하고 운영체제에 전달할 종료 코드를 반환한다."""
     args = parse_args()
 
+    confirmation_options = {}
+    if args.source_timezone_evidence is not None:
+        confirmation_options["source_timezone_evidence"] = args.source_timezone_evidence
+
     try:
         metadata = prepare_data(
             args.input,
             args.output,
             encoding=args.encoding,
             source_timezone=args.source_timezone,
+            **confirmation_options,
         )
     except (OSError, ValueError, LookupError) as error:
         # 예상 가능한 입력·저장 오류
         print(f"ERROR: {error}", file=sys.stderr)
         return 1
 
-    print(
-        "WARNING: Source timezone is caller-supplied and unverified.",
-        file=sys.stderr,
-    )
+    if metadata.get("source_timezone_status") != "confirmed":
+        print(
+            "WARNING: Source timezone is caller-supplied and unverified.",
+            file=sys.stderr,
+        )
+    else:
+        print("Timezone confirmation: caller-reported evidence recorded.")
     print(f"Prepared rows: {metadata['rows']}")
     print(f"Output CSV: {metadata['output_path']}")
     print(f"Metadata: {metadata['metadata_path']}")

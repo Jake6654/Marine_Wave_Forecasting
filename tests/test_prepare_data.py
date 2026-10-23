@@ -68,6 +68,82 @@ def test_parse_args_accepts_explicit_encoding(preparation: ModuleType) -> None:
     assert args.encoding == "utf-8"
 
 
+def test_parse_args_accepts_timezone_evidence(preparation: ModuleType) -> None:
+    args = preparation.parse_args(
+        arguments(Path("source.csv"), Path("output.csv"))
+        + ["--source-timezone-evidence", "사용자가 KST라고 확인함"]
+    )
+    assert args.source_timezone_evidence == "사용자가 KST라고 확인함"
+
+
+@pytest.mark.parametrize("evidence", ["", "   ", 123])
+def test_rejects_empty_or_non_string_timezone_evidence(
+    preparation: ModuleType, source_csv: Path, tmp_path: Path, evidence: object
+) -> None:
+    output = tmp_path / "result.csv"
+    with pytest.raises(ValueError, match="evidence must be a non-empty string"):
+        preparation.prepare_data(
+            source_csv, output, encoding="cp949", source_timezone="Asia/Seoul",
+            source_timezone_evidence=evidence,
+        )
+    assert not output.exists()
+    assert not output.with_suffix(".metadata.json").exists()
+
+
+def test_kst_confirmation_round_trip_preserves_source_and_existing_outputs(
+    preparation: ModuleType, source_csv: Path, tmp_path: Path
+) -> None:
+    from marine_forecast.dataset import load_processed_data
+
+    old_output = tmp_path / "old.csv"
+    prepare(preparation, source_csv, old_output)
+    protected = [source_csv, old_output, old_output.with_suffix(".metadata.json")]
+    before = {path: path.read_bytes() for path in protected}
+    output = tmp_path / "kst_to_utc.csv"
+    metadata = preparation.prepare_data(
+        source_csv, output, encoding="cp949", source_timezone="Asia/Seoul",
+        source_timezone_evidence="  사용자 보고: 원본은 KST  ",
+    )
+    frame, restored_metadata = load_processed_data(output)
+    assert metadata == restored_metadata
+    assert metadata["source_timezone"] == "Asia/Seoul"
+    assert metadata["source_timezone_status"] == "confirmed"
+    assert metadata["source_timezone_confirmation_method"] == "caller_reported"
+    assert metadata["source_timezone_evidence"] == "사용자 보고: 원본은 KST"
+    assert metadata["first_observed_at"] == "2024-12-31T16:00:00+00:00"
+    assert metadata["last_observed_at"] == "2024-12-31T18:00:00+00:00"
+    assert frame.attrs["source_timezone_status"] == "confirmed"
+    assert {path: path.read_bytes() for path in protected} == before
+    # 동일한 관측값에 시간대 해석만 바뀌었는지 확인한다.
+    legacy, _ = load_legacy_with_warning(old_output)
+    assert (legacy["observed_at"] - frame["observed_at"]).eq(pd.Timedelta(hours=9)).all()
+    assert_frame_equal(legacy.drop(columns="observed_at"), frame.drop(columns="observed_at"))
+
+
+def load_legacy_with_warning(path: Path):
+    from marine_forecast.dataset import load_processed_data
+
+    with pytest.warns(UserWarning, match="Source timezone is not confirmed"):
+        return load_processed_data(path)
+
+
+def test_confirmed_kst_cli_records_evidence_without_unverified_warning(
+    source_csv: Path, tmp_path: Path
+) -> None:
+    output = tmp_path / "kst.csv"
+    completed = run_cli([
+        "--input", str(source_csv), "--output", str(output),
+        "--source-timezone", "Asia/Seoul",
+        "--source-timezone-evidence", "사용자가 원본 KST를 확인함",
+    ], tmp_path)
+    assert completed.returncode == 0, completed.stderr
+    assert "unverified" not in completed.stderr
+    assert "caller-reported evidence recorded" in completed.stdout
+    metadata = json.loads(output.with_suffix(".metadata.json").read_text("utf-8"))
+    assert metadata["source_timezone_status"] == "confirmed"
+    assert metadata["source_timezone"] == "Asia/Seoul"
+
+
 @pytest.mark.parametrize("option", ["--input", "--output", "--source-timezone"])
 def test_parse_args_requires_explicit_options(preparation: ModuleType, option: str) -> None:
     argv = arguments(Path("source.csv"), Path("output.csv"))
@@ -319,7 +395,7 @@ def test_exclusive_creation_preserves_racing_file(
 def test_main_reports_success(preparation: ModuleType, monkeypatch, capsys) -> None:
     args = argparse.Namespace(
         input=Path("source.csv"), output=Path("result.csv"),
-        encoding="cp949", source_timezone="UTC",
+        encoding="cp949", source_timezone="UTC", source_timezone_evidence=None,
     )
     monkeypatch.setattr(preparation, "parse_args", lambda: args)
     calls = []
@@ -343,7 +419,7 @@ def test_main_reports_expected_error(
 ) -> None:
     monkeypatch.setattr(
         preparation, "parse_args",
-        lambda: argparse.Namespace(input=Path("source.csv"), output=Path("result.csv"), encoding="cp949", source_timezone="UTC"),
+        lambda: argparse.Namespace(input=Path("source.csv"), output=Path("result.csv"), encoding="cp949", source_timezone="UTC", source_timezone_evidence=None),
     )
 
     def fail_prepare(*args, **kwargs):

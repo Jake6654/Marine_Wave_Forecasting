@@ -1,0 +1,52 @@
+{
+  "source_path": "/Users/jake/Documents/data-project/data/preview/OBS_BUOY_TIM_20261021192756.csv",
+  "source_sha256": "d52bfd7b1a398f5845ffb9200ef6052a2a3f66549cf67ea818cf5d09e0c414b4",
+  "source_encoding": "cp949",
+  "source_timezone": "Asia/Seoul",
+  "source_timezone_status": "confirmed",
+  "output_timezone": "UTC",
+  "output_path": "/Users/jake/Documents/data-project/data/processed/buoy_22101_2025_kst_to_utc.csv",
+  "metadata_path": "/Users/jake/Documents/data-project/data/processed/buoy_22101_2025_kst_to_utc.metadata.json",
+  "rows": 8043,
+  "columns": [
+    "station_id",
+    "observed_at",
+    "wind_speed_mps",
+    "wind_direction_deg",
+    "station_pressure_hpa",
+    "humidity_pct",
+    "air_temperature_c",
+    "water_temperature_c",
+    "significant_wave_height_m",
+    "mean_wave_height_m"
+  ],
+  "dtypes": {
+    "station_id": "string",
+    "observed_at": "datetime64[us, UTC]",
+    "wind_speed_mps": "Float64",
+    "wind_direction_deg": "Float64",
+    "station_pressure_hpa": "Float64",
+    "humidity_pct": "Float64",
+    "air_temperature_c": "Float64",
+    "water_temperature_c": "Float64",
+    "significant_wave_height_m": "Float64",
+    "mean_wave_height_m": "Float64"
+  },
+  "missing_counts": {
+    "station_id": 0,
+    "observed_at": 0,
+    "wind_speed_mps": 0,
+    "wind_direction_deg": 0,
+    "station_pressure_hpa": 0,
+    "humidity_pct": 0,
+    "air_temperature_c": 8,
+    "water_temperature_c": 0,
+    "significant_wave_height_m": 24,
+    "mean_wave_height_m": 353
+  },
+  "first_observed_at": "2024-12-31T15:00:00+00:00",
+  "last_observed_at": "2025-12-31T14:00:00+00:00",
+  "unmapped_columns": [],
+  "source_timezone_evidence": "2026-10-23 사용자가 다운로드한 해양기상부이 시간 자료의 원본 시간대를 KST라고 확인해 전달함. 확인 경로 및 공식 답변 원문은 미첨부.",
+  "source_timezone_confirmation_method": "caller_reported"
+}
