@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from marine_forecast.data.buoy_api import SOURCE_TIMEZONE
 from marine_forecast.data.buoy_store import BuoyObservationStore
 from marine_forecast.data.live_normalization import (
-    POLICY_VERSION, SOURCE_WARNINGS, normalize_live_observations,
+    POLICY_VERSION, SOURCE_WARNINGS, normalize_live_observations, pressure_mapping_evidence,
 )
 from marine_forecast.features import FEATURE_COLUMNS, HORIZON_HOURS, build_features
 from marine_forecast.model_artifact import ModelBundle, _validate_model
@@ -40,11 +40,12 @@ def predict_latest(
         "generated_at_utc": current.isoformat(), "model_id": bundle.metadata["model_id"],
         "horizon_hours": HORIZON_HOURS, "policy_version": POLICY_VERSION,
         "quality_status": "unverified", "operational_use_allowed": False,
+        "pressure_mapping_evidence": pressure_mapping_evidence(),
         "warnings": [*SOURCE_WARNINGS,
                      "Experimental point forecast, not an official forecast or navigation safety assessment."],
     }
     if not allow_unverified_source:
-        # 기본 경로에서 품질·의미 확인을 우회하지 않는다.
+        # 과거 기압의 수치 일치가 확인돼도 미확인 QC를 우회하지 않는다.
         result["reason"] = "source_policy_unverified"
         return result
 
@@ -76,7 +77,8 @@ def predict_latest(
         result["reason"] = "stale_observation"
         return result
 
-    # 이 이름 변경은 사용자가 명시적으로 선택한 실험 경로에만 한정한다.
+    # 2025년 덕적도 대조에서는 추가 기압 보정이 필요 없다는 사용자 근거를 기록한다.
+    # 다른 기간까지 검증된 것은 아니므로 연결은 계속 명시적 실험 경로에 한정한다.
     observations = hourly.rename(columns={"api_pressure_hpa": "station_pressure_hpa"})
     features = build_features(observations)
     latest = features.loc[features["observed_at"].eq(observed_at), list(FEATURE_COLUMNS)]

@@ -119,6 +119,44 @@ def test_default_policy_does_not_claim_quality_is_confirmed(store, bundle):
     assert result["status"] == "unavailable"
     assert result["reason"] == "source_policy_unverified"
     assert "predicted_significant_wave_height_m" not in result
+    assert result["pressure_mapping_evidence"]["evidence_provider"] == "user"
+    assert result["pressure_mapping_evidence"]["pressure_mismatches"] == 0
+    assert result["quality_status"] == "unverified"
+
+
+@pytest.mark.parametrize("timestamp,station,expected", [
+    ("2025-06-01T00:00:00+00:00", "22101", "within_user_reported_comparison_scope"),
+    ("2024-12-31T15:00:00+00:00", "22101", "within_user_reported_comparison_scope"),
+    ("2025-12-31T15:00:00+00:00", "22101", "outside_user_reported_comparison_scope"),
+    ("2026-06-01T00:00:00+00:00", "22101", "outside_user_reported_comparison_scope"),
+    ("2025-06-01T00:30:00+00:00", "22101", "outside_user_reported_comparison_scope"),
+    ("2025-06-01T00:00:00+00:00", "99999", "outside_user_reported_comparison_scope"),
+])
+def test_pressure_evidence_scope_uses_station_kst_year_and_exact_hour(timestamp, station, expected):
+    frame, report = normalize_live_observations([
+        raw_observation(datetime.fromisoformat(timestamp), STN=station, PA="1018.0"),
+    ])
+    assert report["pressure_mapping_status"] == expected
+    evidence = report["pressure_mapping_evidence"]
+    assert evidence["matching_timestamps"] == evidence["csv_rows"] == evidence["api_hourly_rows"] == 8043
+    assert evidence["max_absolute_difference_hpa"] == 0.0
+    assert evidence["independently_reproduced_by_project"] is False
+    assert evidence["official_naming_difference_resolved"] is False
+    assert report["qc_status"] == "unverified"
+    assert frame.iloc[0]["api_pressure_hpa"] == 1018.0
+
+
+def test_mixed_pressure_evidence_scope_is_not_marked_as_fully_verified():
+    _, report = normalize_live_observations([
+        raw_observation(datetime(2025, 6, 1, tzinfo=timezone.utc)),
+        raw_observation(datetime(2026, 6, 1, tzinfo=timezone.utc)),
+    ])
+    assert report["pressure_mapping_status"] == "outside_user_reported_comparison_scope"
+
+
+def test_empty_pressure_scope_is_not_verified():
+    _, report = normalize_live_observations([])
+    assert report["pressure_mapping_status"] == "not_assessed"
 
 
 def test_db_to_features_to_reloaded_model_integration(store, bundle):
