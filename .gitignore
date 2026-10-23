@@ -19,3 +19,6 @@ htmlcov/
 
 # Keep live observations, process locks, and collector status out of Git.
 /data/runtime/
+
+# Rebuild model binaries locally; commit their generating code and documentation.
+/artifacts/
