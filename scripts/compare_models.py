@@ -1,3 +1,5 @@
+"""동일한 검증 표본에서 세 예측 방법을 비교한다."""
+
 from pathlib import Path
 
 import pandas as pd
@@ -62,3 +64,37 @@ def main() -> int:
     predictions = {
         "Persistence": predict_persistence(X_validation),
     }
+
+    for name, model in models.items():
+        # 예측 배열 순서에 대응하는 검증 인덱스를 복원한다.
+        predictions[name] = pd.Series(
+            model.predict(X_validation),
+            index=X_validation.index,
+            name=f"{name}_prediction_{HORIZON_HOURS}h_m",
+            dtype="float64",
+        )
+
+    print("Training samples:", len(train))
+    print("Validation samples:", len(validation))
+    print(
+        "Source timezone status:",
+        metadata["source_timezone_status"],
+    )
+
+    for name, predicted in predictions.items():
+        # 최종 테스트 구간이 아닌 동일한 검증 정답으로만 평가한다.
+        scores = evaluate_regression(
+            y_validation,
+            predicted,
+        )
+        print(
+            f"{name}: "
+            f"MAE={scores['mae_m']:.6f}m, "
+            f"RMSE={scores['rmse_m']:.6f}m"
+        )
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
