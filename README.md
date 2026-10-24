@@ -10,6 +10,9 @@
 [수집기 운영 안내](docs/collector_operations.md)를 참고한다.
 수집 구현과 모델의 실시간 추론·QC 검증 완료는 서로 다른 상태다.
 
+무료 Render에서 모델을 공급하고 임시 관측 DB를 재수집하는 방법은
+[무료 Render 배포 준비](docs/render_free_deployment.md)를 참고한다.
+
 모델 저장·재로딩과 최근 관측의 6시간 뒤 **실험 예측**은
 [Phase F–G 구현·실행 안내](docs/live_prediction.md)를 참고한다.
 덕적도 2025년 정시 기압 8,043건의 수치 일치는 사용자 보고로 기록했다.

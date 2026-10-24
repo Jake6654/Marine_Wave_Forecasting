@@ -29,6 +29,7 @@ class ApiSettings:
     allow_unverified_source: bool = False
     max_age_minutes: float = 90
     collection_token: str | None = field(default=None, repr=False)
+    background_collection: bool = False
 
     def __post_init__(self):
         if self.collection_token is not None and (
@@ -38,7 +39,7 @@ class ApiSettings:
             or len(self.collection_token) < 32
         ):
             raise ValueError("Collection token must contain at least 32 ASCII characters.")
-        for value in (self.trust_local_model, self.allow_unverified_source):
+        for value in (self.trust_local_model, self.allow_unverified_source, self.background_collection):
             if type(value) is not bool:
                 raise TypeError("API policy settings must be bool.")
         age = self.max_age_minutes
@@ -62,4 +63,5 @@ class ApiSettings:
             allow_unverified_source=_boolean(source, "MARINE_API_ALLOW_UNVERIFIED_SOURCE"),
             max_age_minutes=age,
             collection_token=source.get("MARINE_COLLECTION_TOKEN") or None,
+            background_collection=_boolean(source, "MARINE_API_BACKGROUND_COLLECTION"),
         )
