@@ -18,7 +18,12 @@
 
 HTTP 관측·예측 조회와 오류 처리, 서버 실행·테스트는
 [Phase H FastAPI 구현 안내](docs/phase_h_fastapi.md)에 정리했다.
-API는 수집기와 별도 프로세스이며 수집이나 재학습을 요청 안에서 실행하지 않는다.
+조회 API는 수집이나 재학습을 실행하지 않는다. 별도로 인증된 수동 수집 POST를 추가했으며,
+버튼 연결·필수 환경 변수·동시 실행 제한은 [수동 관측 수집 안내](docs/manual_collection.md)에 정리했다.
+
+`frontend/`의 Next.js 단일 대시보드는 기존 API의 관측·실험 예측·모의 파고 구간을
+표시한다. 실행법·데이터 흐름·검증 결과는
+[Phase I1 프론트엔드 안내](docs/phase_i_frontend.md)를 참고한다.
 
 ## 1. 프로젝트 목적
 

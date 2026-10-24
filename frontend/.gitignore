@@ -1,0 +1,8 @@
+node_modules/
+.next/
+.next-check/
+coverage/
+*.tsbuildinfo
+.env*
+!.env.example
+.sites-runtime/

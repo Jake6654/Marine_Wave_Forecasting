@@ -29,6 +29,17 @@ class HealthResponse(ApiModel):
     status: Literal["ok", "ready"]
 
 
+class CollectionResponse(ApiModel):
+    status: Literal["collected"]
+    station_id: str
+    started_at_utc: AwareDatetime
+    completed_at_utc: AwareDatetime
+    received_count: int = Field(ge=1)
+    processed_count: int = Field(ge=1)
+    latest_observed_at_kst: AwareDatetime
+    message: str
+
+
 class NormalizationIssue(ApiModel):
     station_id: str
     observed_at: AwareDatetime

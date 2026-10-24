@@ -4,15 +4,14 @@ import argparse
 import os
 import sqlite3
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from pathlib import Path
 
-from marine_forecast.data.buoy_api import SOURCE_TIMEZONE
 from marine_forecast.data.buoy_client import (
     BuoyApiClient,
     BuoyApiError,
 )
-from marine_forecast.data.buoy_store import BuoyObservationStore
+from marine_forecast.data.buoy_collection import collect_observations
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -59,90 +58,12 @@ def collect_once(
     station_id: str,
     lookback_hours: int = 12,
 ) -> dict[str, object]:
-    """최근 관측을 조회·저장하고 결과 요약을 반환한다."""
-    if (
-        isinstance(lookback_hours, bool)
-        or not isinstance(lookback_hours, int)
-    ):
-        raise TypeError("lookback_hours must be an integer.")
-
-    if not 1 <= lookback_hours <= 24:
-        raise ValueError("lookback_hours must be between 1 and 24.")
-
-    # API 입력의 정밀도에 맞춰 초와 마이크로초를 제거한다.
-    end = datetime.now(SOURCE_TIMEZONE).replace(
-        second=0,
-        microsecond=0,
+    """공유 수집 함수를 호출하며 기존 CLI·테스트 진입점을 유지한다."""
+    return collect_observations(
+        api_key=api_key, db_path=db_path, station_id=station_id,
+        lookback_hours=lookback_hours, client_factory=BuoyApiClient,
+        now=lambda tz: datetime.now(tz),
     )
-    start = end - timedelta(hours=lookback_hours)
-
-    client = BuoyApiClient(
-        api_key,
-        timeout_seconds=15.0,
-    )
-
-    observations = client.fetch(
-        station_id=station_id,
-        start=start,
-        end=end,
-    )
-
-    if not observations:
-        raise ValueError("No observations returned by the client.")
-
-    # 관측시각과 구분해 이번 호출의 수신 완료시각을 기록한다.
-    received_at = datetime.now(timezone.utc)
-
-    # API 조회 실패 시 불필요한 빈 DB를 만들지 않도록 뒤에서 초기화한다.
-    store = BuoyObservationStore(db_path)
-    store.initialize()
-
-    processed_count = store.save(
-        observations,
-        received_at=received_at,
-    )
-
-    restored = store.load(
-        station_id=station_id,
-        start=start,
-        end=end,
-    )
-
-    restored_by_key = {
-        (observation.station_id, observation.observed_at): observation
-        for observation in restored
-    }
-
-    # 건수뿐 아니라 이번 수신 관측의 실제 필드가 저장됐는지 대조한다.
-    for observation in observations:
-        key = (
-            observation.station_id,
-            observation.observed_at,
-        )
-
-        if restored_by_key.get(key) != observation:
-            raise ValueError(
-                "Stored observation does not match the received data."
-            )
-
-    latest = max(
-        observations,
-        key=lambda observation: observation.observed_at,
-    )
-
-    return {
-        "station_id": station_id,
-        "query_start_kst": start.isoformat(),
-        "query_end_kst": end.isoformat(),
-        "received_at_utc": received_at.isoformat(),
-        "received_count": len(observations),
-        "processed_count": processed_count,
-        "stored_window_count": len(restored),
-        "latest_observed_at_kst": latest.observed_at.astimezone(
-            SOURCE_TIMEZONE
-        ).isoformat(),
-        "db_path": str(store.path),
-    }
 
 
 def main() -> int:
