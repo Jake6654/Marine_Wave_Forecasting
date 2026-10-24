@@ -3,6 +3,7 @@
 import sqlite3
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
+from dataclasses import asdict
 
 import pandas as pd
 
@@ -12,6 +13,7 @@ from marine_forecast.data.buoy_store import BuoyObservationStore
 from marine_forecast.data.live_normalization import POLICY_VERSION, SOURCE_WARNINGS, normalize_live_observations
 from marine_forecast.inference import predict_latest
 from marine_forecast.model_artifact import ModelBundle
+from marine_forecast.reference_levels import classify_wave_reference
 
 
 class ApiError(Exception):
@@ -90,20 +92,59 @@ class ForecastService:
         return result
 
     def latest_prediction(self, station_id: str) -> dict[str, object]:
+        """기존 추론 결과에 모의 파고 구간을 연결한다."""
+
         self._station(station_id)
+
         if self.bundle is None:
-            raise ApiError(503, "model_unavailable", "A trusted compatible model is not loaded.")
-        try:
-            # QC 허용 여부는 요청자가 아닌 서버 설정에서만 결정한다.
-            return predict_latest(
-                self.store, self.bundle, station_id=station_id, now=self._now(),
-                max_age_minutes=self.settings.max_age_minutes,
-                allow_unverified_source=self.settings.allow_unverified_source,
+            raise ApiError(
+                503,
+                "model_unavailable",
+                "A trusted compatible model is not loaded.",
             )
+
+        try:
+            result = predict_latest(
+                self.store,
+                self.bundle,
+                station_id=station_id,
+                now=self._now(),
+                max_age_minutes=self.settings.max_age_minutes,
+                allow_unverified_source=(
+                    self.settings.allow_unverified_source
+                ),
+            )
+
+            # 예측 불가 결과에는 예측값 키가 없으므로 None을 전달한다.
+            reference = classify_wave_reference(
+                # get 으로 예측값을 읽는다
+                result.get("predicted_significant_wave_height_m"),
+                prediction_status=result["status"], # 상태 전달
+            )
+
+            # HTTP 응답에는 dataclass 대신 일반 dict 또는 null을 전달한다.
+            result["wave_reference"] = (
+                # convert dataclass into dict
+                asdict(reference)
+                if reference is not None
+                else None
+            )
+
+            return result
+
         except (OSError, sqlite3.Error):
-            raise ApiError(503, "observation_store_unavailable", "Observation storage is unavailable.") from None
+            raise ApiError(
+                503,
+                "observation_store_unavailable",
+                "Observation storage is unavailable."
+            ) from None
+
         except (ValueError, TypeError, KeyError):
-            raise ApiError(503, "prediction_input_invalid", "Prediction inputs or model contract are invalid.") from None
+            raise ApiError(
+                503,
+                "prediction_input_invalid",
+                "Prediction inputs or model contract are invalid.",
+            ) from None
 
     def ready(self) -> dict[str, str]:
         if self.bundle is None:

@@ -11,14 +11,14 @@ REFERENCE_POLICY_VERSION = "wave-reference-v1"
 class WaveReference:
     """분류 코드와 수치 구간 표시 문구를 보관한다"""
 
-    code: Literal["P1", "P2", "P3", "P4"]
+    code: Literal["P1", "P2", "P3", "P4"] # 허용하는 상태 코드값을 타입 힌트로 제공한다
     label: str
     policy_version: str = REFERENCE_POLICY_VERSION
 
 def classify_wave_reference(
         predicted_wave_height_m: float | None,
         *,
-        prediction_status: Literal["experiemntal", "unavailiable"],
+        prediction_status: Literal["experimental", "unavailiable"],
 ) -> WaveReference | None:
     """실험이 예측에 성공한 경우에만 모의 파고 구간을 반환한다"""
 
