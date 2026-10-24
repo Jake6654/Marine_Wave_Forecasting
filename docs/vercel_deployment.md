@@ -4,7 +4,25 @@
 
 운영 주소: https://marine-wave-forecasting.vercel.app
 
-## 검증 결과
+## Render 연결 완료 — 2026-10-24 18:46 KST
+
+- 백엔드: `https://marine-wave-forecasting.onrender.com`
+- Vercel Production의 `MARINE_API_BASE_URL`을 위 주소로 설정 후 재배포했다.
+- 새 배포 ID: `dpl_FmCNADTnkBqTHBDYKnpVjRVhxsd5`, 상태 `READY`
+- Render `/health/live`, `/health/ready`, 관측·예측 GET 모두 HTTP 200을 확인했다.
+- 프론트의 실제 API 클라이언트에서 두 응답의 계약 검증도 통과했다.
+- 운영 브라우저에서 18:30 KST 관측 파고 0.3m, 18:00 KST 기준
+  다음 날 00:00의 실험 예측 약 0.386m와 P1 표시를 확인했다.
+- 실제 Render SQLite·모델·HTTP·Vercel 화면을 연결했으며, 기상청 수집은 서버의
+  기존 백그라운드 작업 결과를 조회했다. 별도 수동 POST는 실행하지 않았다.
+- 서버 키·수집 토큰은 복사하거나 변경하지 않았고 공개 수집 버튼의 제한도 유지했다.
+- 무료 서버의 cold start, 재시작 후 DB 복구, 반복 수집의 장기 실행은 아직 미검증이다.
+- 화면 기록: Git 제외 경로 `data/runtime/vercel-render-connected.jpg`.
+
+이번 연결은 환경 변수와 배포 설정만 변경했다. 기능 소스 수정이나 단위 테스트 재실행은 없다.
+아래 최초 기록과 Render 연결 절차는 이 변경 전의 배포 과정을 설명한다.
+
+## 최초 프론트 단독 배포 기록
 
 - Vercel 배포 ID: `dpl_3gGpVjZ1KKACjmG9FGQK92kdijJA`
 - Production 배포 상태: `READY`

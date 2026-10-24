@@ -57,6 +57,7 @@ def parse_buoy_response(
     if not isinstance(text, str):
         raise TypeError("API response must be a string.")
 
+    # 앞뒤 공백 제거후 줄바꿈 기준으로 list 을 만들어 반환
     lines = text.strip().splitlines()
 
     # HTTP 200이어도 JSON 오류나 불완전한 본문일 수 있다.
@@ -70,8 +71,17 @@ def parse_buoy_response(
         )
 
     observations: list[RawBuoyObservation] = []
+    # 중복처리
+    # ("22101", 관측시각) 형태의 튜플을 담는 집합
+    # seen = {
+    # (
+    #     "22101",
+    #     datetime(2026, 10, 23, 8, 0, tzinfo=timezone.utc),
+    # )
+    # }
     seen: set[tuple[str, datetime]] = set()
 
+    # 시작과 종료 표식을 제외하고 한줄씩 처리
     for line_number, line in enumerate(lines[1:-1], start=2):
         stripped = line.strip()
 
@@ -104,6 +114,7 @@ def parse_buoy_response(
                 f"Unexpected API fields at response line {line_number}."
             )
 
+        # 19개의 문자열
         raw_fields = tuple(fields[:-1])
         raw_time = raw_fields[0]
         station_id = raw_fields[1]
