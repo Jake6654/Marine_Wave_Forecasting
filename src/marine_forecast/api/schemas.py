@@ -29,6 +29,17 @@ class HealthResponse(ApiModel):
     status: Literal["ok", "ready"]
 
 
+class CollectionResponse(ApiModel):
+    status: Literal["collected"]
+    station_id: str
+    started_at_utc: AwareDatetime
+    completed_at_utc: AwareDatetime
+    received_count: int = Field(ge=1)
+    processed_count: int = Field(ge=1)
+    latest_observed_at_kst: AwareDatetime
+    message: str
+
+
 class NormalizationIssue(ApiModel):
     station_id: str
     observed_at: AwareDatetime
@@ -94,6 +105,11 @@ class PredictionBase(ApiModel):
     normalization_report: NormalizationReport | None = None
     latest_available_observation_at_utc: AwareDatetime | None = None
 
+class WaveReferenceResponse(ApiModel):
+    code: Literal["P1", "P2", "P3", "P4"]
+    label: str
+    policy_version: str
+
 
 class ExperimentalPrediction(PredictionBase):
     status: Literal["experimental"]
@@ -107,6 +123,7 @@ class ExperimentalPrediction(PredictionBase):
     persistence_significant_wave_height_m: float = Field(ge=0)
     features: dict[str, float]
     source_qc: list[SourceQC]
+    wave_reference: WaveReferenceResponse
 
 
 class UnavailablePrediction(PredictionBase):
@@ -121,6 +138,7 @@ class UnavailablePrediction(PredictionBase):
     target_at_kst: AwareDatetime | None = None
     observation_age_minutes: float | None = Field(default=None, ge=0)
     missing_features: list[str] = Field(default_factory=list)
+    wave_reference: None = None
 
 
 PredictionResponse = Annotated[

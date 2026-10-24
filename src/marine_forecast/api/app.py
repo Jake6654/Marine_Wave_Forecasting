@@ -11,8 +11,9 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
 from marine_forecast.api.schemas import (
-    ErrorDetail, ErrorResponse, HealthResponse, ObservationResponse, PredictionResponse, ValidationIssue,
+    CollectionResponse, ErrorDetail, ErrorResponse, HealthResponse, ObservationResponse, PredictionResponse, ValidationIssue,
 )
+from marine_forecast.api.collection import ManualCollection
 from marine_forecast.api.service import ApiError, ForecastService, utc_now
 from marine_forecast.api.settings import ApiSettings
 from marine_forecast.model_artifact import load_model_artifact
@@ -41,11 +42,13 @@ def create_app(settings: ApiSettings | None = None, *, clock: Callable[[], datet
                 # 실패해도 관측 조회와 liveness는 제공하되 경로·원문 예외는 공개하지 않는다.
                 logger.warning("Model loading failed (%s).", type(error).__name__)
         app.state.forecast_service = ForecastService(config, bundle, clock=clock)
+        app.state.manual_collection = ManualCollection(config, clock=clock)
         try:
             yield
         finally:
             # 요청마다 만든 DB 연결은 저장소가 닫는다. 모델 참조는 종료 시 해제한다.
             del app.state.forecast_service
+            del app.state.manual_collection
 
     def reject_query_parameters(request: Request):
         if request.query_params:
@@ -108,5 +111,12 @@ def create_app(settings: ApiSettings | None = None, *, clock: Callable[[], datet
         station_id: str = Path(pattern=r"^[0-9]{1,8}$"), svc: ForecastService = Depends(service),
     ):
         return svc.latest_prediction(station_id)
+
+    @app.post("/v1/stations/{station_id}/observations/collect", response_model=CollectionResponse,
+              responses={code: {"model": ErrorResponse} for code in (403, 404, 409, 422, 429, 502, 503)})
+    def collect_observations_now(request: Request, station_id: str = Path(pattern=r"^[0-9]{1,8}$")):
+        return request.app.state.manual_collection.collect(
+            station_id, request.headers.get("x-collection-token", ""),
+        )
 
     return app

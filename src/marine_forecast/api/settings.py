@@ -2,7 +2,7 @@
 
 import math
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from collections.abc import Mapping
 
@@ -28,8 +28,16 @@ class ApiSettings:
     trust_local_model: bool = False
     allow_unverified_source: bool = False
     max_age_minutes: float = 90
+    collection_token: str | None = field(default=None, repr=False)
 
     def __post_init__(self):
+        if self.collection_token is not None and (
+            not isinstance(self.collection_token, str)
+            or not self.collection_token.isascii()
+            or not self.collection_token.isprintable()
+            or len(self.collection_token) < 32
+        ):
+            raise ValueError("Collection token must contain at least 32 ASCII characters.")
         for value in (self.trust_local_model, self.allow_unverified_source):
             if type(value) is not bool:
                 raise TypeError("API policy settings must be bool.")
@@ -53,4 +61,5 @@ class ApiSettings:
             trust_local_model=_boolean(source, "MARINE_API_TRUST_LOCAL_MODEL"),
             allow_unverified_source=_boolean(source, "MARINE_API_ALLOW_UNVERIFIED_SOURCE"),
             max_age_minutes=age,
+            collection_token=source.get("MARINE_COLLECTION_TOKEN") or None,
         )
