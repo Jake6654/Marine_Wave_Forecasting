@@ -6,3 +6,5 @@ coverage/
 .env*
 !.env.example
 .sites-runtime/
+.vercel/
+.vercel

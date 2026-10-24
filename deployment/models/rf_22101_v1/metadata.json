@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "model_id": "rf-22101-0c2a284dede20560",
+  "model_sha256": "0c2a284dede20560aab772eda47963b3430c8bbf9992e4ab6cf0805b177b4e2f",
+  "feature_columns": [
+    "significant_wave_height_m",
+    "wind_speed_mps",
+    "station_pressure_hpa",
+    "wave_height_lag_1h_m",
+    "wave_height_lag_3h_m",
+    "wave_height_lag_6h_m",
+    "wave_height_change_1h_m"
+  ],
+  "horizon_hours": 6,
+  "station_id": "22101",
+  "python_version": "3.13.5",
+  "sklearn_version": "1.9.1",
+  "pandas_version": "3.0.6",
+  "model_parameters": {
+    "bootstrap": true,
+    "ccp_alpha": 0.0,
+    "criterion": "squared_error",
+    "max_depth": 10,
+    "max_features": 0.8,
+    "max_leaf_nodes": null,
+    "max_samples": null,
+    "min_impurity_decrease": 0.0,
+    "min_samples_leaf": 5,
+    "min_samples_split": 2,
+    "min_weight_fraction_leaf": 0.0,
+    "monotonic_cst": null,
+    "n_estimators": 200,
+    "n_jobs": 1,
+    "oob_score": false,
+    "random_state": 42,
+    "verbose": 0,
+    "warm_start": false
+  },
+  "provenance": {
+    "station_id": "22101",
+    "created_at_utc": "2026-10-23T20:22:40.239186+00:00",
+    "processed_sha256": "c43317013997a5c6d17198a3c1aa5d928a01d8bb8db291c1819a521ebb7d3a31",
+    "source_sha256": "d52bfd7b1a398f5845ffb9200ef6052a2a3f66549cf67ea818cf5d09e0c414b4",
+    "source_timezone_status": "confirmed",
+    "source_timezone_confirmation_method": "caller_reported",
+    "boundaries": {
+      "validation_start": "2025-10-01T00:00:00+09:00",
+      "test_start": "2025-12-01T00:00:00+09:00",
+      "test_end": "2026-01-01T00:00:00+09:00"
+    },
+    "training_samples": 3891,
+    "training_first_observed_at": "2024-12-31T21:00:00+00:00",
+    "training_last_target_at": "2025-09-30T14:00:00+00:00",
+    "validation_samples": 1130,
+    "validation_metrics": {
+      "mae_m": 0.19283951685989853,
+      "rmse_m": 0.2735833342732802
+    },
+    "validation_persistence_metrics": {
+      "mae_m": 0.22371681415929204,
+      "rmse_m": 0.32647215929763473
+    },
+    "test_re_evaluated": false
+  }
+}

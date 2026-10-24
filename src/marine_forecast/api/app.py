@@ -1,6 +1,7 @@
 """앱 팩토리·수명주기·HTTP 경로·일관된 오류 응답을 연결한다."""
 
 import logging
+import asyncio
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -14,6 +15,7 @@ from marine_forecast.api.schemas import (
     CollectionResponse, ErrorDetail, ErrorResponse, HealthResponse, ObservationResponse, PredictionResponse, ValidationIssue,
 )
 from marine_forecast.api.collection import ManualCollection
+from marine_forecast.api.background_collection import BackgroundCollection
 from marine_forecast.api.service import ApiError, ForecastService, utc_now
 from marine_forecast.api.settings import ApiSettings
 from marine_forecast.model_artifact import load_model_artifact
@@ -43,9 +45,15 @@ def create_app(settings: ApiSettings | None = None, *, clock: Callable[[], datet
                 logger.warning("Model loading failed (%s).", type(error).__name__)
         app.state.forecast_service = ForecastService(config, bundle, clock=clock)
         app.state.manual_collection = ManualCollection(config, clock=clock)
+        collector = BackgroundCollection(config) if config.background_collection else None
         try:
+            if collector is not None:
+                collector.start()
             yield
         finally:
+            if collector is not None:
+                # 동기 네트워크 작업의 종료를 기다릴 때 이벤트 루프를 막지 않는다.
+                await asyncio.to_thread(collector.stop)
             # 요청마다 만든 DB 연결은 저장소가 닫는다. 모델 참조는 종료 시 해제한다.
             del app.state.forecast_service
             del app.state.manual_collection
