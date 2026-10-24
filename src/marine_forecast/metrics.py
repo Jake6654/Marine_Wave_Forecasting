@@ -50,7 +50,9 @@ def evaluate_regression(
 
     errors = predicted - actual
 
+    # 평균 절대 오차
     mae = float(errors.abs().mean())
+    # 평균 제곱근 오차(큰 오차에 더 큰 영향을 주기 위해서 제곱근을 한다)
     rmse = math.sqrt(float(errors.pow(2).mean()))
 
     # 입력이 유한해도 극단적인 값의 계산은 넘칠 수 있다.

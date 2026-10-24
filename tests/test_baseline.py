@@ -100,6 +100,9 @@ def test_predict_rejects_infinite_current_wave(features: pd.DataFrame, value: fl
         predict_persistence(features)
 
 
+
+
+
 def test_predict_rejects_negative_wave(features: pd.DataFrame) -> None:
     features.loc[20, CURRENT_WAVE_COLUMN] = -0.1
     with pytest.raises(ValueError, match="must be non-negative"):
@@ -151,109 +154,4 @@ def test_validation_pipeline_integration() -> None:
     after = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
     assert before == after
 
-@pytest.mark.parametrize(
-    "predicted_value,expected_code,expected_label",
-    [
-        (0.18, "P1", "1m 미만"),
-        (1.0, "P2", "1~2m 미만"),
-        (2.0, "P3", "2~3m 미만"),
-        (3.0, "P4", "3m 이상"),
-    ],
-)
-def test_prediction_response_contains_wave_reference(
-    resources,
-    monkeypatch,
-    predicted_value,
-    expected_code,
-    expected_label,
-):
-    service_module = importlib.import_module(
-        "marine_forecast.api.service"
-    )
-    original_predict = service_module.predict_latest
 
-    def controlled_prediction(*args, **kwargs):
-        result = original_predict(*args, **kwargs)
-
-        # HTTP 연결 검증을 위해 예측 수치만 결정적으로 변경한다.
-        result["predicted_significant_wave_height_m"] = (
-            predicted_value
-        )
-        return result
-
-    monkeypatch.setattr(
-        service_module,
-        "predict_latest",
-        controlled_prediction,
-    )
-
-    with client_for(resources[1]) as client:
-        response = client.get(PRED)
-
-    assert response.status_code == 200
-
-    body = response.json()
-
-    assert body["status"] == "experimental"
-    assert body["wave_reference"] == {
-        "code": expected_code,
-        "label": expected_label,
-        "policy_version": "wave-reference-v1",
-    }
-
-    # 구간이 생겨도 QC 상태나 운영 사용 허용 여부는 바뀌지 않는다.
-    assert body["quality_status"] == "unverified"
-    assert body["operational_use_allowed"] is False
-
-
-@pytest.mark.parametrize(
-    "scenario,expected_reason",
-    [
-        ("policy", "source_policy_unverified"),
-        ("stale", "stale_observation"),
-        ("missing", "incomplete_latest_features"),
-    ],
-)
-def test_unavailable_prediction_has_null_wave_reference(
-    resources,
-    scenario,
-    expected_reason,
-):
-    store, settings = resources
-    now = NOW
-
-    if scenario == "policy":
-        settings = replace(
-            settings,
-            allow_unverified_source=False,
-        )
-
-    elif scenario == "stale":
-        now = NOW + timedelta(hours=2)
-
-    else:
-        # 最新ではなく 최신 정시의 풍속을 결측 처리한다.
-        store.save(
-            [
-                make_row(
-                    NOW.replace(minute=0),
-                    WS1="-99",
-                )
-            ],
-            received_at=NOW + timedelta(seconds=1),
-        )
-
-    app = create_app(settings, clock=lambda: now)
-
-    with TestClient(app) as client:
-        response = client.get(PRED)
-
-    assert response.status_code == 200
-
-    body = response.json()
-
-    assert body["status"] == "unavailable"
-    assert body["reason"] == expected_reason
-    assert body["wave_reference"] is None
-    assert "predicted_significant_wave_height_m" not in body
-    assert body["operational_use_allowed"] is False

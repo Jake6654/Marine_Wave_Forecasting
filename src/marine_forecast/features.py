@@ -106,13 +106,14 @@ def build_features(observations: pd.DataFrame) -> pd.DataFrame:
         # 과거 관측을 그 값을 참조할 기준시각에 대응시킨다.
         # 예를 들어 08시 관측에 1시간을 더해 09시 행과 연결한다.
         shifted["observed_at"] = (
+            # 인자로 입력받은 hours 만큼 움직인다 
+            # 과거 표의 연결용 시각만 ~시간 앞으로 옮겨서 두키를 같게 만든다
             shifted["observed_at"] + pd.Timedelta(hours=hours)
         )
 
-        # 모든 현재 관측을 유지하고 같은 관측소·정확한 시각만 연결한다.
         result = result.merge(
             shifted,
-            on=keys,
+            on=keys, # 관측소와 시각 두값이 모두 일치해야 연결
             how="left",
             validate="one_to_one",
             sort=False,
