@@ -1,0 +1,126 @@
+{
+  "evaluated_at_utc": "2026-10-26T07:57:21.676274+00:00",
+  "model_id": "rf-22101-0c2a284dede20560",
+  "processed_sha256": "c43317013997a5c6d17198a3c1aa5d928a01d8bb8db291c1819a521ebb7d3a31",
+  "model_sha256": "0c2a284dede20560aab772eda47963b3430c8bbf9992e4ab6cf0805b177b4e2f",
+  "metadata_sha256": "d70110e7038ad5d1d50dbd2a9f203b312c01f1bf0b76894c73d37a2b7bdb5779",
+  "uv_lock_sha256": "f115e456328b1d8d9155958ead5b312b184cf61819bbcc3c40f6401ef5153ed4",
+  "environment": {
+    "python_version": "3.13.5",
+    "sklearn_version": "1.9.1",
+    "pandas_version": "3.0.6"
+  },
+  "code_sha256": {
+    "scripts/evaluate_final_test.py": "cc6d7f7499cb72c6195d4126ad44e9c376b0441e0b448290fcd137172f7f1fc2",
+    "src/marine_forecast/features.py": "3f7c3473785b754328241a3f9715bebdeaba3491a498a8815872e56b15ebecc8",
+    "src/marine_forecast/dataset.py": "9504f49d3a6d2eb3c8bc8186d5c532c1126c6c8f7cf1671abbaf3d8e6be73d70",
+    "src/marine_forecast/metrics.py": "898dccbbc5f1e612df9a28ccbbb0614ed1f52081af527ec51309744079fa169c",
+    "src/marine_forecast/training.py": "2e1240b8edbb9c0fa0f53b60d1c56034a67b0b8270b46a9418212298cacfa708",
+    "src/marine_forecast/baseline.py": "ee5892b4af43a6ed3611e02b6a86aebba438d4a8e85ad6bacf8331183b00d2a3"
+  },
+  "boundaries_kst": {
+    "validation_start": "2025-10-01T00:00:00+09:00",
+    "test_start": "2025-12-01T00:00:00+09:00",
+    "test_end": "2026-01-01T00:00:00+09:00"
+  },
+  "split_rows": {
+    "train": 3891,
+    "validation": 1130,
+    "test": 728
+  },
+  "high_wave_threshold_m": 1.0,
+  "high_wave_actual_min_m": 1.0,
+  "high_wave_actual_max_m": 2.2,
+  "first_test_observed_at_utc": "2025-11-30T15:00:00+00:00",
+  "last_test_target_at_utc": "2025-12-31T14:00:00+00:00",
+  "complete_samples_report": {
+    "total_rows": 8043,
+    "usable_rows": 5756,
+    "excluded_rows": 2287,
+    "missing_features_only": 1613,
+    "missing_target_only": 485,
+    "missing_both": 189,
+    "missing_per_feature": {
+      "significant_wave_height_m": 24,
+      "wind_speed_mps": 0,
+      "station_pressure_hpa": 0,
+      "wave_height_lag_1h_m": 658,
+      "wave_height_lag_3h_m": 676,
+      "wave_height_lag_6h_m": 672,
+      "wave_height_change_1h_m": 669
+    }
+  },
+  "split_report": {
+    "input_rows": 5756,
+    "used_rows": 5749,
+    "excluded_rows": 7,
+    "split_rows": {
+      "train": 3891,
+      "validation": 1130,
+      "test": 728
+    },
+    "purged_boundary_rows": {
+      "train": 1,
+      "validation": 6,
+      "test": 0
+    },
+    "outside_period_rows": 0,
+    "boundaries": {
+      "validation_start": "2025-09-30T15:00:00+00:00",
+      "test_start": "2025-11-30T15:00:00+00:00",
+      "test_end": "2025-12-31T15:00:00+00:00"
+    },
+    "source_timezone_status": "confirmed"
+  },
+  "training_only_reproduction_matches_artifact": true,
+  "test_used_for_model_selection": false,
+  "artifact_modified": false,
+  "overall_improvement_percent_vs_persistence": {
+    "mae_m": 16.96120691809426,
+    "rmse_m": 16.485030363247265
+  },
+  "overall": {
+    "RandomForest": {
+      "samples": 728,
+      "mae_m": 0.2103345253338382,
+      "rmse_m": 0.2968879367604331,
+      "bias_m": -0.011460404068363444,
+      "underprediction_count": 327,
+      "underprediction_rate": 0.4491758241758242,
+      "mean_shortfall_when_under_m": 0.24689099175046295,
+      "mean_shortfall_all_m": 0.11089746470110082
+    },
+    "Persistence": {
+      "samples": 728,
+      "mae_m": 0.25329670329670334,
+      "rmse_m": 0.35549068394773214,
+      "bias_m": -0.001373626373626372,
+      "underprediction_count": 274,
+      "underprediction_rate": 0.37637362637362637,
+      "mean_shortfall_when_under_m": 0.3383211678832117,
+      "mean_shortfall_all_m": 0.12733516483516483
+    }
+  },
+  "high_wave": {
+    "RandomForest": {
+      "samples": 209,
+      "mae_m": 0.324136608448625,
+      "rmse_m": 0.4315041344111204,
+      "bias_m": -0.23367256319828347,
+      "underprediction_count": 159,
+      "underprediction_rate": 0.7607655502392344,
+      "mean_shortfall_when_under_m": 0.3666104304220248,
+      "mean_shortfall_all_m": 0.27890458582345423
+    },
+    "Persistence": {
+      "samples": 209,
+      "mae_m": 0.392822966507177,
+      "rmse_m": 0.5072205903477571,
+      "bias_m": -0.19473684210526318,
+      "underprediction_count": 125,
+      "underprediction_rate": 0.5980861244019139,
+      "mean_shortfall_when_under_m": 0.4912000000000001,
+      "mean_shortfall_all_m": 0.29377990430622014
+    }
+  }
+}
